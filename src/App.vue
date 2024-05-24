@@ -10,7 +10,7 @@
       </template>
 
       <v-spacer></v-spacer>
-      <p class="" v-text="'route name'"></p>
+      <p class="fs-3 text-body-secondary" v-text="this.$route.name"></p>
 
       <div class="d-block d-sm-none">
         <!-- <v-img src="@/assets/logo.jpg" max-width="100"> </v-img> -->

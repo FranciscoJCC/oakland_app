@@ -1,24 +1,31 @@
 <template>
-  <div>
-    <TitleComponent title="Lista de publicaciones" />
-    <div class="mr-5">
-      <TableComponent />
-    </div>
+  <div class="mr-5 mt-5">
+    <TableComponent title="Publicaciones" textButton="Nuevo Post" :headers="headers" :items="posts">
+      <template #dialog>
+        <DialogPost textButton="Nuevo post" @updateTable="getPosts" />
+      </template>
+    </TableComponent>
   </div>
 </template>
 <script>
 import axios from 'axios'
-import TitleComponent from '../components/TitleComponent.vue'
-import TableComponent from '../components/TableComponent.vue'
+import TableComponent from '../../components/TableComponent.vue'
+import DialogPost from './DialogPost.vue'
 
 export default {
   components: {
-    TitleComponent,
-    TableComponent
+    TableComponent,
+    DialogPost
   },
 
   data: () => ({
-    posts: []
+    posts: [],
+    headers: [
+      { align: 'center', key: 'title', title: 'Titulo' },
+      { align: 'center', key: 'category.name', title: 'Categoria' },
+      { align: 'center', key: 'thematic.name', title: 'Tematica' },
+      { title: 'Actions', key: 'actions', sortable: false }
+    ]
   }),
 
   methods: {

@@ -1,120 +1,182 @@
 <template>
-  <v-card title="Nutrition" flat>
-    <template v-slot:text>
-      <v-text-field
-        v-model="search"
-        label="Search"
-        prepend-inner-icon="mdi-magnify"
-        variant="outlined"
-        hide-details
-        single-line
-      ></v-text-field>
+  <v-data-table :headers="headers" :items="items" :sort-by="[{ key: 'calories', order: 'asc' }]">
+    <template v-slot:top>
+      <v-toolbar flat>
+        <v-toolbar-title>{{ title }}</v-toolbar-title>
+        <v-divider class="mx-4" inset vertical></v-divider>
+        <v-spacer></v-spacer>
+        <slot name="dialog" />
+        <v-dialog v-model="dialogDelete" max-width="500px">
+          <v-card>
+            <v-card-title class="text-h5">Are you sure you want to delete this item?</v-card-title>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="blue-darken-1" variant="text" @click="closeDelete">Cancel</v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="deleteItemConfirm">OK</v-btn>
+              <v-spacer></v-spacer>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-toolbar>
     </template>
-
-    <v-data-table :headers="headers" :items="desserts" :search="search"></v-data-table>
-  </v-card>
+    <template v-slot:[`item.actions`]="{ item }">
+      <v-icon class="me-2" size="small" @click="editItem(item)"> mdi-pencil </v-icon>
+      <v-icon size="small" @click="deleteItem(item)"> mdi-delete </v-icon>
+    </template>
+    <template v-slot:no-data>
+      <v-btn color="primary" @click="getCategories"> Reset </v-btn>
+    </template>
+  </v-data-table>
 </template>
 <script>
+import axios from 'axios'
+
 export default {
-  data() {
-    return {
-      search: '',
-      headers: [
-        {
-          align: 'start',
-          key: 'name',
-          sortable: false,
-          title: 'Dessert (100g serving)'
-        },
-        { key: 'calories', title: 'Calories' },
-        { key: 'fat', title: 'Fat (g)' },
-        { key: 'carbs', title: 'Carbs (g)' },
-        { key: 'protein', title: 'Protein (g)' },
-        { key: 'iron', title: 'Iron (%)' }
-      ],
-      desserts: [
-        {
-          name: 'Frozen Yogurt',
-          calories: 159,
-          fat: 6.0,
-          carbs: 24,
-          protein: 4.0,
-          iron: 1
-        },
-        {
-          name: 'Ice cream sandwich',
-          calories: 237,
-          fat: 9.0,
-          carbs: 37,
-          protein: 4.3,
-          iron: 1
-        },
-        {
-          name: 'Eclair',
-          calories: 262,
-          fat: 16.0,
-          carbs: 23,
-          protein: 6.0,
-          iron: 7
-        },
-        {
-          name: 'Cupcake',
-          calories: 305,
-          fat: 3.7,
-          carbs: 67,
-          protein: 4.3,
-          iron: 8
-        },
-        {
-          name: 'Gingerbread',
-          calories: 356,
-          fat: 16.0,
-          carbs: 49,
-          protein: 3.9,
-          iron: 16
-        },
-        {
-          name: 'Jelly bean',
-          calories: 375,
-          fat: 0.0,
-          carbs: 94,
-          protein: 0.0,
-          iron: 0
-        },
-        {
-          name: 'Lollipop',
-          calories: 392,
-          fat: 0.2,
-          carbs: 98,
-          protein: 0,
-          iron: 2
-        },
-        {
-          name: 'Honeycomb',
-          calories: 408,
-          fat: 3.2,
-          carbs: 87,
-          protein: 6.5,
-          iron: 45
-        },
-        {
-          name: 'Donut',
-          calories: 452,
-          fat: 25.0,
-          carbs: 51,
-          protein: 4.9,
-          iron: 22
-        },
-        {
-          name: 'KitKat',
-          calories: 518,
-          fat: 26.0,
-          carbs: 65,
-          protein: 7,
-          iron: 6
-        }
-      ]
+  props: {
+    title: {
+      type: String,
+      default: ''
+    },
+    textButton: {
+      type: String,
+      default: 'Agregar'
+    },
+    headers: {
+      type: Object
+    },
+    items: {
+      type: Object
     }
+  },
+  data: () => ({
+    categories: [],
+    thematics: [],
+    categoryValue: '',
+    categoryId: 0,
+    thematicValue: '',
+    thematicId: 0,
+
+    dialog: false,
+    dialogDelete: false,
+    editedIndex: -1,
+    editedItem: [],
+    defaultItem: {
+      title: '',
+      content: 0,
+      categoryId: 0,
+      category: ''
+    }
+  }),
+
+  computed: {
+    formTitle() {
+      return this.editedIndex === -1 ? 'New Item' : 'Edit Item'
+    }
+  },
+
+  watch: {
+    dialog(val) {
+      val || this.close()
+    },
+    dialogDelete(val) {
+      val || this.closeDelete()
+    }
+  },
+
+  methods: {
+    editItem(item) {
+      this.editedItem = item
+      this.categoryValue = item.category.name
+      this.thematicValue = item.thematic.name
+      this.categoryId = item.category.id
+      this.thematicId = item.thematic.id
+      this.dialog = true
+    },
+
+    deleteItem(item) {
+      this.editedIndex = this.desserts.indexOf(item)
+      this.editedItem = Object.assign({}, item)
+      this.dialogDelete = true
+    },
+
+    deleteItemConfirm() {
+      this.desserts.splice(this.editedIndex, 1)
+      this.closeDelete()
+    },
+
+    close() {
+      this.dialog = false
+      this.$nextTick(() => {
+        this.editedItem = []
+        this.categoryValue = ''
+        this.thematicValue = ''
+      })
+    },
+
+    closeDelete() {
+      this.dialogDelete = false
+      this.$nextTick(() => {
+        this.editedItem = Object.assign({}, this.defaultItem)
+        this.editedIndex = -1
+      })
+    },
+
+    save() {
+      if (this.editedIndex > -1) {
+        Object.assign(this.desserts[this.editedIndex], this.editedItem)
+      } else {
+        this.desserts.push(this.editedItem)
+      }
+      this.close()
+    },
+
+    getCategories() {
+      let URL = 'http://localhost:3000/api/v1/categories'
+      let me = this
+
+      let config = {
+        headers: {
+          Authorization:
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGUiOiJhZG1pbmlzdHJhdG9yIiwiaWF0IjoxNzE2NTMwOTg2fQ.3C_c6XbiVhHh2rTcxLJ1AQmuS1vTD-npFvvrNwizJx0'
+        }
+      }
+
+      axios
+        .get(URL, config)
+        .then((res) => {
+          me.categories = res.data
+          console.log(res)
+        })
+        .catch((err) => {
+          console.error(err)
+        })
+    },
+
+    getThematics() {
+      let URL = 'http://localhost:3000/api/v1/thematics'
+      let me = this
+
+      let config = {
+        headers: {
+          Authorization:
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGUiOiJhZG1pbmlzdHJhdG9yIiwiaWF0IjoxNzE2NTMwOTg2fQ.3C_c6XbiVhHh2rTcxLJ1AQmuS1vTD-npFvvrNwizJx0'
+        }
+      }
+
+      axios
+        .get(URL, config)
+        .then((res) => {
+          me.thematics = res.data
+          console.log(res)
+        })
+        .catch((err) => {
+          console.error(err)
+        })
+    }
+  },
+  created() {
+    this.getCategories()
+    this.getThematics()
   }
 }
 </script>
