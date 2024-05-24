@@ -33,3 +33,7 @@ npm run build
 ```sh
 npm run lint
 ```
+
+## Notas importantes
+
+### Para poder realizar consultas desde la aplicación, **es necesario ingresar un token manualmente en el código** , ya que por cuestiones de tiempo no alcancé a implementar el login y manejo de la sesión.
